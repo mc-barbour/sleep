@@ -52,6 +52,7 @@ for i in range(n):
 filename = '/Volumes/files/RadResearch/Projects/SLEEP_STUDY_DATA/Weston_sleepEDF_test.edf'
 # filename = '/Volumes/files/RadResearch/Projects/SLEEP_STUDY_DATA/EDF1.EDF'
 filename = '/Volumes/Active/powell_w/PSG EDF Exports/RCResp_2024_07_19.EDF'
+filename = '/Users/mbarb1/Desktop/PRS_SJ_2024_11_05.EDF'
 filename = 'Y:/powell_w/PSG EDF Exports/RCResp_2024_07_19.EDF'
 
 f = pyedflib.EdfReader(filename)
@@ -240,9 +241,51 @@ fig.show()
 
 
 
+#%% Pulling in Robin patient - want to find sleep states
+
+annotations = f.readAnnotations()
+event_time = annotations[0]
+event_dur = annotations[1]
+events = annotations[2]
+unique_events = np.unique(events)
+print(unique_events)
 
 
+hypop_int = np.where(events == 'Hypopnea')
+normal_breathing = np.where(events == 'Normal Breathing')
+periodic_breathing = np.where(events == 'Periodic Breathing')
+central_apnea = np.where(events == 'Central Apnea')
+
+sleep_stageN1 = np.where(events == 'Sleep stage N1')
+sleep_stageN2 = np.where(events == 'Sleep stage N2')
+sleep_stageN3 = np.where(events == 'Sleep stage N3')
+
+sleep_stageR = np.where(events == 'Sleep stage R')
+sleep_stageW = np.where(events == 'Sleep stage W')
+
+supine = np.where(events == 'Body Position: Supine')
+left = np.where(events == 'Body Position: Left')
+right= np.where(events == 'Body Position: Right')
+
+#%%
+time = np.linspace(0,len(df)/int(freq), len(df))
+i = 274
+start_ind = 50000 * i
+end_ind = 50000 * (i+1)
+fig = make_subplots(rows=4, cols=1)
+
+fig.add_trace(go.Scatter(x=time[start_ind:end_ind], y = df['Resp DyMedix+'][start_ind:end_ind], name = 'PLeth'), row=1, col=1)
+fig.add_trace(go.Scatter(x=time[start_ind:end_ind], y = df['PFLOW'][start_ind:end_ind], name = 'PFLOW'), row=2, col=1)
+fig.add_trace(go.Scatter(x=time[start_ind:end_ind], y = df['Resp Abd'][start_ind:end_ind], name = 'Resp Abd'), row=3, col=1)
+fig.add_trace(go.Scatter(x=time[start_ind:end_ind], y = df['Resp Chest'][start_ind:end_ind], name = 'Resp Chest'), row=4, col=1)
 
 
+time_start = time[start_ind]
+time_end = time[end_ind]
+events_time_band = np.where((event_time < time_end) & (event_time > time_start))[0]
+annotations_time_band = events[events_time_band[0]:events_time_band[-1]+1]
+print(annotations_time_band, events_time_band)
+
+fig.show()
 
 
