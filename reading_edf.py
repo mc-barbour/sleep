@@ -1,3 +1,4 @@
+#%%
 import pandas as pd
 import numpy as np
 import pyedflib
@@ -34,7 +35,7 @@ def edf_to_df(f, start=0, n_samples=1000):
     
     return df
     
-    #%%
+#%%
 f = pyedflib.EdfReader(filename)
 n = f.signals_in_file
 signal_labels = f.getSignalLabels()
@@ -51,6 +52,7 @@ for i in range(n):
 filename = '/Volumes/files/RadResearch/Projects/SLEEP_STUDY_DATA/Weston_sleepEDF_test.edf'
 # filename = '/Volumes/files/RadResearch/Projects/SLEEP_STUDY_DATA/EDF1.EDF'
 filename = '/Volumes/Active/powell_w/PSG EDF Exports/RCResp_2024_07_19.EDF'
+filename = 'Y:/powell_w/PSG EDF Exports/RCResp_2024_07_19.EDF'
 
 f = pyedflib.EdfReader(filename)
 n = f.signals_in_file
@@ -77,7 +79,7 @@ fig.show()
 
 time = np.linspace(0,len(df)/int(freq), len(df))
 
-minutes = 10
+minutes = 2
 plot_index = int(minutes*freq*60)
 
 fig = make_subplots(rows=4, cols=1)
