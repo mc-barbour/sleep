@@ -42,7 +42,9 @@ signal_labels = f.getSignalLabels()
 sigbufs = np.zeros((n, f.getNSamples()[0]))
 
 for i in range(n):
-    print(f.getNSamples(i))
+    print(f.getNSamples()[i])
+
+
 
 
 #%% Load the edf file _ will need to close if reloading f.close()
@@ -50,9 +52,10 @@ for i in range(n):
 
 #filename = '/Volumes/files/RadResearch/Projects/SLEEP_STUDY_DATA/AIRWAY_MAIDA_20JUN23/RESEARCH~ ROOM_a7173d7d-93ff-4f23-aaa9-3573bb41eeb4.edf'
 filename = '/Volumes/files/RadResearch/Projects/SLEEP_STUDY_DATA/Weston_sleepEDF_test.edf'
+filename = 'Z:/Projects/SLEEP_STUDY_DATA/Weston_sleepEDF_test.edf'
 # filename = '/Volumes/files/RadResearch/Projects/SLEEP_STUDY_DATA/EDF1.EDF'
-filename = '/Volumes/Active/powell_w/PSG EDF Exports/RCResp_2024_07_19.EDF'
-filename = '/Users/mbarb1/Desktop/PRS_SJ_2024_11_05.EDF'
+#filename = '/Volumes/Active/powell_w/PSG EDF Exports/RCResp_2024_07_19.EDF'
+#filename = '/Users/mbarb1/Desktop/PRS_SJ_2024_11_05.EDF'
 filename = 'Y:/powell_w/PSG EDF Exports/RCResp_2024_07_19.EDF'
 
 f = pyedflib.EdfReader(filename)
@@ -60,8 +63,9 @@ n = f.signals_in_file
 signal_labels = f.getSignalLabels()
 sigbufs = np.zeros((n, f.getNSamples()[0]))
 freq = int(f.getSampleFrequency(1))
-
+#%%
 total_samples = f.samples_in_file(1)
+#total_samples = int(2e5)
 
 df = edf_to_df(f, start=0, n_samples=total_samples)
 print(df.columns)
