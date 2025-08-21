@@ -361,7 +361,7 @@ class EDFSleepStudy:
                     length: Optional[int] = None,
                     title: str = "Sleep Study Signals",
                     height: int = 800,
-                    show_annotations: bool = True) -> go.Figure:
+                    annotation_types: Optional[List[str]] = None) -> go.Figure:
         """
         Plot 4 signal traces using Plotly with specified start index and length.
         
@@ -450,8 +450,9 @@ class EDFSleepStudy:
             fig.update_yaxes(title_text=y_label, row=i+1, col=1)
         
         # Add annotations if requested
-        if show_annotations and self.annotations:
-            self._add_annotations_to_plot(fig, start_index, end_index, self.sample_rate)
+        if self.annotations:
+            self._add_annotations_to_plot(fig, start_index, end_index, self.sample_rate, annotation_types)
+        
         
         # Update layout
         fig.update_layout(
@@ -515,7 +516,27 @@ class EDFSleepStudy:
         }
         return mapping.get(attribute_name, attribute_name)
     
-    def _add_annotations_to_plot(self, fig: go.Figure, start_index: int, end_index: int, sample_rate: float):
+    # def _add_annotations_to_plot(self, fig: go.Figure, start_index: int, end_index: int, sample_rate: float):
+    #     """Add annotation markers to the plot."""
+    #     start_time = start_index / sample_rate
+    #     end_time = end_index / sample_rate
+        
+    #     # Filter annotations that fall within the time window
+    #     relevant_annotations = [
+    #         ann for ann in self.annotations
+    #         if start_time <= ann['onset'] <= end_time
+    #     ]
+        
+    #     # Add vertical lines for annotations
+    #     for ann in relevant_annotations:
+    #         fig.add_vline(
+    #             x=ann['onset'],
+    #             line=dict(color="red", width=1, dash="dot"),
+    #             annotation_text=ann['description'][:20] + "..." if len(ann['description']) > 20 else ann['description'],
+    #             annotation_position="top"
+    #         )
+    
+    def _add_annotations_to_plot(self, fig: go.Figure, start_index: int, end_index: int, sample_rate: float, annotation_types: Optional[List[str]] = None):
         """Add annotation markers to the plot."""
         start_time = start_index / sample_rate
         end_time = end_index / sample_rate
@@ -526,13 +547,45 @@ class EDFSleepStudy:
             if start_time <= ann['onset'] <= end_time
         ]
         
+        # Further filter by annotation types if specified
+        if annotation_types is not None:
+            filtered_annotations = []
+            for ann in relevant_annotations:
+                # Check if any of the requested types are in the annotation description
+                if any(ann_type.lower() in ann['description'].lower() for ann_type in annotation_types):
+                    filtered_annotations.append(ann)
+            relevant_annotations = filtered_annotations
+        
+        # Color mapping for different annotation types
+        annotation_colors = {
+            'apnea': 'red',
+            'hypopnea': 'orange', 
+            'arousal': 'purple',
+            'desaturation': 'blue',
+            'stage': 'green',
+            'movement': 'brown',
+            'default': 'gray'
+        }
+        
         # Add vertical lines for annotations
         for ann in relevant_annotations:
+            # Determine color based on annotation type
+            color = annotation_colors['default']
+            for ann_type, ann_color in annotation_colors.items():
+                if ann_type in ann['description'].lower():
+                    color = ann_color
+                    break
+            
+            # Truncate long annotation descriptions
+            display_text = ann['description'][:25] + "..." if len(ann['description']) > 25 else ann['description']
+            
             fig.add_vline(
                 x=ann['onset'],
-                line=dict(color="red", width=1, dash="dot"),
-                annotation_text=ann['description'][:20] + "..." if len(ann['description']) > 20 else ann['description'],
-                annotation_position="top"
+                line=dict(color=color, width=2, dash="dot"),
+                annotation_text=display_text,
+                annotation_position="top",
+                annotation_textangle=90,
+                annotation_font_size=8
             )
     
     def get_available_signals(self) -> List[str]:
