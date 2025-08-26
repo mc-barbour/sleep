@@ -3,6 +3,8 @@ import importlib
 # Replace with the actual module name
 
 from edf_sleep_data import *
+from resp_waveforms import *
+import loop_gain
 
 # importlib.reload(edf_sleep_data)
 
@@ -96,7 +98,7 @@ for window in valid_sleep_windows:
         length=int(window['duration'] * study.sample_rate),            # 30 seconds
         title="REM window w/ apnea",
         height=1200,
-        annotation_types=['Hypopnea', 'Central Apnea']
+        annotation_types=['Hypopnea', 'Central Apnea', 'EEG arousal']
     )
     fig.show()
 
@@ -119,6 +121,7 @@ peaks = find_peaks(flow, distance=min_samples)
 breath_minute_volume_array = []
 breath_plot_index = []
 breath_time = []
+breath_durations = []
 for count in range(len(peaks[0])-1):
     s1 = peaks[0][count]
     s2 = peaks[0][count+1]
@@ -133,19 +136,39 @@ for count in range(len(peaks[0])-1):
     breath_duration = (s2 - s1) / study.sample_rate
     breath_minute_volume = -1 * insp_vol / breath_duration # arbitray volume / s
     breath_minute_volume_array.append(breath_minute_volume)
+    breath_durations.append(breath_duration)
+
+minute_ventilation_norm = np.array(breath_minute_volume_array) - np.mean(breath_minute_volume_array)
+
+
+
+def compute_vchem(minute_vent, breath_duration, tau, LG, sigma, vchem0):
+    # still need to add delay function
+
+    vchem = np.zeros_like(minute_vent)
+    vchem[0] = vchem0                                                                                                                                                                                                                                                                                                                 
+    
+    for i in range(len(minute_vent) - 1):
+        alpha = ((tau / breath_duration[i]) / (1 + tau / breath_duration[i]) + 1 - (breath_duration[i] / tau ) )
+        beta = -LG * (1 / (1 + tau / breath_duration[i]) + 1 / (tau / breath_duration[i]))
+        print(alpha, beta)
+        vchem[i+1] = alpha / 2 * vchem[i] + beta / 2 * minute_vent[i+1]
+    return vchem
+        
+
 
 
 def func_vchem(time, minute_vent, tau, LG, sigma):
     return -LG /(1 + time * tau) * np.exp(-time * sigma) * minute_vent
 
 
-vchem = func_vchem(np.array(breath_time), np.array(breath_minute_volume_array), tau=1, LG=1, sigma=0.2 )
-
+# vchem = func_vchem(np.array(breath_time), np.array(breath_minute_volume_array), tau=1, LG=1, sigma=1.0 )
+vchem = compute_vchem(minute_ventilation_norm, breath_durations, tau=4, LG=0.5, sigma=1, vchem0=breath_minute_volume_array[0]*0.9)
 
 fig = make_subplots(rows=2, cols=1)
 fig.add_trace(go.Scatter(x=time, y=flow), row=1, col=1)
 fig.add_trace(go.Scatter(x=time[peaks[0]],y=flow[peaks[0]], mode='markers', marker_color='red'))
-fig.add_trace(go.Scatter(x=breath_time, y=breath_minute_volume_array), row=2, col=1)
+fig.add_trace(go.Scatter(x=breath_time, y=minute_ventilation_norm), row=2, col=1)
 fig.add_trace(go.Scatter(x=breath_time, y=vchem), row=2, col=1)
 
 fig.update_xaxes(range = (0,400))
@@ -153,5 +176,51 @@ fig.show()
 
 
 
+
+# %% create idealized waveform
+
+apnea_events = [
+        (15, 12),   # 12-second apnea at 15s
+        (40, 18),   # 18-second apnea at 40s
+        (75, 15),   # 15-second apnea at 75s
+        (105, 10),  # 10-second apnea at 105s
+    ]
+    
+time, signal = generate_apnea_waveform(
+        duration=120,
+        sample_rate=50,
+        breathing_frequency=0.7,  \
+        apnea_events=apnea_events,
+        pre_apnea_decline_time=4.0,
+        post_apnea_recovery_time=6.0,
+        recovery_overshoot=1.8,
+        noise_level=0.08
+    )
+
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=time, y=signal))
+fig.show()
+
+# %%
+importlib.reload(loop_gain)
+
+
+
+        
+
+minute_ventilation_norm, breath_durations, breath_time = loop_gain.compute_minute_ventilation(signal, time, estimated_RR=1.4, sample_rate=50 )
+# delayed_minute_vent = minute_vent_delay(minute_ventilation_norm, breath_time, sigma=6)
+
+vchem, start_idx = loop_gain.compute_vchem(minute_ventilation_norm, breath_durations, breath_time, tau=6, LG=1.2, sigma=10, vchem0=minute_ventilation_norm[0]*0.9)
+fig = make_subplots(rows=2, cols=1)
+fig.add_trace(go.Scatter(x=time, y=signal), row=1, col=1)
+fig.add_trace(go.Scatter(x=breath_time, y=minute_ventilation_norm), row=2, col=1)
+fig.add_trace(go.Scatter(x=breath_time[start_idx::], y=vchem), row=2, col=1)
+# fig.add_trace(go.Scatter(x=breath_time, y=delayed_minute_vent), row=2, col=1)
+
+
+
+
+fig.show()
 
 # %%
