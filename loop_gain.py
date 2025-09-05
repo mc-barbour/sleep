@@ -39,7 +39,7 @@ def compute_minute_ventilation(flow_signal, time, estimated_RR, sample_rate, plo
         breath_minute_volume_array.append(breath_minute_volume)
         breath_durations.append(breath_duration)
 
-    minute_ventilation_norm = np.array(breath_minute_volume_array) - np.mean(breath_minute_volume_array)
+    minute_ventilation_norm = np.array(breath_minute_volume_array) / np.mean(breath_minute_volume_array)
 
     if plot_peaks:
         fig = make_subplots(rows=2, cols=1)

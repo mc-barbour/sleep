@@ -180,14 +180,14 @@ fig.show()
 # %% create idealized waveform
 
 apnea_events = [
-        (15, 12),   # 12-second apnea at 15s
+        # (15, 12),   # 12-second apnea at 15s
         (40, 18),   # 18-second apnea at 40s
         (75, 15),   # 15-second apnea at 75s
         (105, 10),  # 10-second apnea at 105s
     ]
     
 time, signal = generate_apnea_waveform(
-        duration=120,
+        duration=150,
         sample_rate=50,
         breathing_frequency=0.7,  \
         apnea_events=apnea_events,
@@ -203,7 +203,7 @@ fig.show()
 
 # %%
 importlib.reload(loop_gain)
-
+### this realyl doesnt make sense unless the minute ventilation get's normalized to zero when anayzing the contol system
 
 
         
@@ -211,11 +211,13 @@ importlib.reload(loop_gain)
 minute_ventilation_norm, breath_durations, breath_time = loop_gain.compute_minute_ventilation(signal, time, estimated_RR=1.4, sample_rate=50 )
 # delayed_minute_vent = minute_vent_delay(minute_ventilation_norm, breath_time, sigma=6)
 
-vchem, start_idx = loop_gain.compute_vchem(minute_ventilation_norm, breath_durations, breath_time, tau=6, LG=1.2, sigma=10, vchem0=minute_ventilation_norm[0]*0.9)
+vchem, start_idx = loop_gain.compute_vchem(minute_ventilation_norm - np.mean(minute_ventilation_norm), breath_durations, breath_time, tau=2, LG=0.2, sigma=10, vchem0=minute_ventilation_norm[0]*0.9)
+
+
 fig = make_subplots(rows=2, cols=1)
 fig.add_trace(go.Scatter(x=time, y=signal), row=1, col=1)
 fig.add_trace(go.Scatter(x=breath_time, y=minute_ventilation_norm), row=2, col=1)
-fig.add_trace(go.Scatter(x=breath_time[start_idx::], y=vchem), row=2, col=1)
+fig.add_trace(go.Scatter(x=breath_time[start_idx::], y=vchem + np.mean(minute_ventilation_norm)), row=2, col=1)
 # fig.add_trace(go.Scatter(x=breath_time, y=delayed_minute_vent), row=2, col=1)
 
 
@@ -224,3 +226,5 @@ fig.add_trace(go.Scatter(x=breath_time[start_idx::], y=vchem), row=2, col=1)
 fig.show()
 
 # %%
+import loop_gain_claude
+
